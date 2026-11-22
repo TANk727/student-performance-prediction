@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from src.ui import apply_custom_theme, page_header
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
@@ -28,7 +29,7 @@ st.set_page_config(
     layout="wide"
 )
 
-
+apply_custom_theme()
 # ==========================================
 # LOAD DATA AND MODELS
 # ==========================================
@@ -222,8 +223,16 @@ value_labels = {
 
 st.sidebar.title("🎓 Student Analytics")
 
-st.sidebar.caption(
-    "Student Performance Prediction System"
+st.sidebar.markdown(
+    """
+    <div style="padding: 10px 0 20px 0;">
+        <h2 style="margin-bottom:0;">🎓 EduAnalytics</h2>
+        <p style="color:#9ca3af; font-size:13px;">
+            Student Intelligence Platform
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 page = st.sidebar.radio(
@@ -250,14 +259,10 @@ st.sidebar.caption(
 
 if page == "Overview":
 
-    st.title("Student Performance Dashboard")
-
-    st.write(
-        "Explore student academic information, "
-        "understand dataset patterns and predict "
-        "student performance using machine learning."
-    )
-
+    page_header(
+    "Student Performance Dashboard",
+    "Get an overview of student academic performance, dataset insights and prediction capabilities."
+)
     st.divider()
 
     total_students = len(data)
@@ -323,12 +328,10 @@ if page == "Overview":
 
 elif page == "Exploratory Data Analysis":
 
-    st.title("Exploratory Data Analysis")
-
-    st.write(
-        "Explore relationships and patterns "
-        "within the student performance dataset."
-    )
+    page_header(
+    "Exploratory Data Analysis",
+    "Explore student demographics, academic results, study habits and factors related to performance."
+)
 
     st.divider()
 
@@ -457,11 +460,9 @@ elif page == "Exploratory Data Analysis":
 
 elif page == "Predict Performance":
 
-    st.title("Student Performance Prediction")
-
-    st.write(
-        "Enter student information to predict "
-        "whether the student is likely to pass or fail."
+    page_header(
+        "Student Performance Prediction",
+        "Enter student information to estimate the likelihood of passing the final mathematics exam."
     )
 
     st.info(
@@ -595,12 +596,10 @@ elif page == "Predict Performance":
 
 elif page == "Model Performance":
 
-    st.title("Model Performance Analysis")
-
-    st.write(
-        "Compare the performance of all six tuned models "
-        "using an independent test dataset."
-    )
+    page_header(
+    "Model Performance & Evaluation",
+    "Compare machine learning models using evaluation metrics, cross-validation results and confusion matrices."
+)
 
     st.info(
         "These results use the same 80/20 stratified split "
@@ -787,59 +786,116 @@ elif page == "Model Performance":
 # MODEL INFORMATION PAGE
 # ==========================================
 
+
 elif page == "Model Information":
 
-    st.title("Machine Learning Models")
-
-    st.write(
-        "This project uses six supervised machine learning "
-        "algorithms to predict student pass/fail outcomes."
+    page_header(
+        "Meet the Intelligence Behind the Predictions",
+        "Explore six machine learning algorithms, each with a unique approach to understanding student performance."
     )
 
-    model_descriptions = {
-        "Decision Tree": (
-            "Uses decision rules based on feature values "
-            "to classify student outcomes."
-        ),
-        "Random Forest": (
-            "Combines multiple decision trees to improve "
-            "prediction stability and generalization."
-        ),
-        "KNN": (
-            "Predicts outcomes by comparing students with "
-            "similar feature values."
-        ),
-        "Logistic Regression": (
-            "Estimates the probability of a student passing "
-            "or failing using a classification model."
-        ),
-        "Bagging": (
-            "Trains multiple models on bootstrap samples "
-            "and combines their predictions."
-        ),
-        "Stacking": (
-            "Combines predictions from different base models "
-            "using a final meta-model."
-        )
-    }
+    st.markdown("""
+    Every algorithm learns differently. Some follow decision rules,
+    others discover patterns, while some combine multiple models
+    to make predictions.
+    """)
 
-    for name, description in model_descriptions.items():
+    models_info = [
+        {
+            "name": "Decision Tree",
+            "icon": "🌳",
+            "tagline": "The Logical Thinker",
+            "description": "Makes predictions through a sequence of decision rules, breaking complex student data into simple, understandable choices.",
+            "how": "The algorithm asks questions about student features and follows branches based on the answers until it reaches a final prediction.",
+            "strength": "Easy to interpret and visualize.",
+            "best_for": "Understanding decision-making patterns."
+        },
+        {
+            "name": "Random Forest",
+            "icon": "🌲🌲🌲",
+            "tagline": "The Team Player",
+            "description": "Combines multiple decision trees to produce a more stable and reliable prediction.",
+            "how": "Each tree learns from a different random sample of the training data. Their predictions are combined through majority voting.",
+            "strength": "Reduces overfitting compared with a single decision tree.",
+            "best_for": "Learning complex patterns in student data."
+        },
+        {
+            "name": "K-Nearest Neighbors",
+            "icon": "🎯",
+            "tagline": "The Similarity Seeker",
+            "description": "Predicts student outcomes by examining other students with similar characteristics.",
+            "how": "It calculates distances between students, identifies the K closest neighbors, and predicts the most common class among them.",
+            "strength": "Simple and intuitive, with no complex training process.",
+            "best_for": "Finding patterns among similar students."
+        },
+        {
+            "name": "Logistic Regression",
+            "icon": "📊",
+            "tagline": "The Probability Expert",
+            "description": "Estimates the probability of a student passing or failing using a mathematical classification model.",
+            "how": "It combines input features mathematically and applies a sigmoid function to estimate the probability of belonging to a class.",
+            "strength": "Provides interpretable probabilities and coefficients.",
+            "best_for": "Understanding relationships between features and outcomes."
+        },
+        {
+            "name": "Bagging Classifier",
+            "icon": "🤝",
+            "tagline": "The Collaborative Learner",
+            "description": "Trains multiple versions of a base model and combines their predictions to improve consistency.",
+            "how": "It creates different bootstrap samples from the training data, trains separate decision trees, and combines their predictions through voting.",
+            "strength": "Helps reduce model variance and instability.",
+            "best_for": "Improving the consistency of decision-tree predictions."
+        },
+        {
+            "name": "Stacking Classifier",
+            "icon": "🧠",
+            "tagline": "The Master Strategist",
+            "description": "Combines different machine learning algorithms using another model that learns how to make the final decision.",
+            "how": "Decision Tree, Random Forest, and KNN generate predictions. A Logistic Regression meta-learner uses those predictions to produce the final result.",
+            "strength": "Combines the strengths of different algorithms.",
+            "best_for": "Learning from multiple model perspectives."
+        }
+    ]
 
-        with st.expander(name):
-            st.write(description)
+    for i in range(0, len(models_info), 2):
+        col1, col2 = st.columns(2)
+
+        for col, model in zip(
+            [col1, col2],
+            models_info[i:i + 2]
+        ):
+            with col:
+                with st.container(border=True):
+                    st.markdown(
+                        f"## {model['icon']} {model['name']}"
+                    )
+
+                    st.caption(model["tagline"])
+
+                    st.write(model["description"])
+
+                    st.divider()
+
+                    with st.expander("⚙️ How it works"):
+                        st.write(model["how"])
+
+                    with st.expander("✨ Key strengths"):
+                        st.write(model["strength"])
+
+                    st.markdown(
+                        f"**Best suited for:** {model['best_for']}"
+                    )
 
     st.divider()
 
-    st.subheader("Training Information")
+    st.markdown("""
+    ### 🏁 Six Algorithms. One Prediction Challenge.
 
-    st.write("**Dataset:** UCI Student Performance Dataset")
-    st.write("**Target:** Pass / Fail")
-    st.write("**Passing Condition:** G3 ≥ 10")
-    st.write("**Evaluation:** Stratified 5-Fold Cross-Validation")
-    st.write("**Hyperparameter Tuning:** GridSearchCV")
-    st.write("**Tuning Metric:** Macro F1-Score")
-    st.write("**Model Storage:** Joblib")
-    st.write("**Application Framework:** Streamlit")
+    Each model approaches student performance differently.
+    By evaluating them using the same dataset and evaluation metrics,
+    we can identify which approach performs best on our test data.
+    """)
+
 
 
 # ==========================================
