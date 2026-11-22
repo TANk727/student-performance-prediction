@@ -3,7 +3,19 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    confusion_matrix,
+    classification_report,
+    ConfusionMatrixDisplay
+)
+
 from src.model_persistence import load_models
+from src.preprocessing import preprocess_data
 
 
 # ==========================================
@@ -84,27 +96,16 @@ value_labels = {
         "GP": "Gabriel Pereira School",
         "MS": "Mousinho da Silveira School"
     },
-
-    "sex": {
-        "F": "Female",
-        "M": "Male"
-    },
-
-    "address": {
-        "U": "Urban Area",
-        "R": "Rural Area"
-    },
-
+    "sex": {"F": "Female", "M": "Male"},
+    "address": {"U": "Urban Area", "R": "Rural Area"},
     "famsize": {
         "LE3": "3 or Fewer Family Members",
         "GT3": "More Than 3 Family Members"
     },
-
     "Pstatus": {
         "T": "Parents Living Together",
         "A": "Parents Living Apart"
     },
-
     "Medu": {
         0: "No Formal Education",
         1: "Primary Education",
@@ -112,7 +113,6 @@ value_labels = {
         3: "Secondary Education",
         4: "Higher Education"
     },
-
     "Fedu": {
         0: "No Formal Education",
         1: "Primary Education",
@@ -120,7 +120,6 @@ value_labels = {
         3: "Secondary Education",
         4: "Higher Education"
     },
-
     "Mjob": {
         "teacher": "Teacher",
         "health": "Healthcare",
@@ -128,7 +127,6 @@ value_labels = {
         "at_home": "Works at Home",
         "other": "Other"
     },
-
     "Fjob": {
         "teacher": "Teacher",
         "health": "Healthcare",
@@ -136,81 +134,43 @@ value_labels = {
         "at_home": "Works at Home",
         "other": "Other"
     },
-
     "reason": {
         "home": "Close to Home",
         "reputation": "School Reputation",
         "course": "Preferred Course",
         "other": "Other Reason"
     },
-
     "guardian": {
         "mother": "Mother",
         "father": "Father",
         "other": "Other"
     },
-
     "traveltime": {
         1: "Less Than 15 Minutes",
         2: "15 to 30 Minutes",
         3: "30 Minutes to 1 Hour",
         4: "More Than 1 Hour"
     },
-
     "studytime": {
         1: "Less Than 2 Hours",
         2: "2 to 5 Hours",
         3: "5 to 10 Hours",
         4: "More Than 10 Hours"
     },
-
     "failures": {
         0: "No Previous Failures",
         1: "1 Previous Failure",
         2: "2 Previous Failures",
         3: "3 or More Previous Failures"
     },
-
-    "schoolsup": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "famsup": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "paid": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "activities": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "nursery": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "higher": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "internet": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
-    "romantic": {
-        "yes": "Yes",
-        "no": "No"
-    },
-
+    "schoolsup": {"yes": "Yes", "no": "No"},
+    "famsup": {"yes": "Yes", "no": "No"},
+    "paid": {"yes": "Yes", "no": "No"},
+    "activities": {"yes": "Yes", "no": "No"},
+    "nursery": {"yes": "Yes", "no": "No"},
+    "higher": {"yes": "Yes", "no": "No"},
+    "internet": {"yes": "Yes", "no": "No"},
+    "romantic": {"yes": "Yes", "no": "No"},
     "famrel": {
         1: "Very Poor",
         2: "Poor",
@@ -218,7 +178,6 @@ value_labels = {
         4: "Good",
         5: "Excellent"
     },
-
     "freetime": {
         1: "Very Low",
         2: "Low",
@@ -226,7 +185,6 @@ value_labels = {
         4: "High",
         5: "Very High"
     },
-
     "goout": {
         1: "Very Low",
         2: "Low",
@@ -234,7 +192,6 @@ value_labels = {
         4: "High",
         5: "Very High"
     },
-
     "Dalc": {
         1: "Very Low",
         2: "Low",
@@ -242,7 +199,6 @@ value_labels = {
         4: "High",
         5: "Very High"
     },
-
     "Walc": {
         1: "Very Low",
         2: "Low",
@@ -250,7 +206,6 @@ value_labels = {
         4: "High",
         5: "Very High"
     },
-
     "health": {
         1: "Very Poor",
         2: "Poor",
@@ -267,7 +222,9 @@ value_labels = {
 
 st.sidebar.title("🎓 Student Analytics")
 
-st.sidebar.caption("Student Performance Prediction System")
+st.sidebar.caption(
+    "Student Performance Prediction System"
+)
 
 page = st.sidebar.radio(
     "Navigation",
@@ -275,6 +232,7 @@ page = st.sidebar.radio(
         "Overview",
         "Exploratory Data Analysis",
         "Predict Performance",
+        "Model Performance",
         "Model Information"
     ]
 )
@@ -303,21 +261,15 @@ if page == "Overview":
     st.divider()
 
     total_students = len(data)
-
     average_grade = data["G3"].mean()
-
     passing_students = (data["G3"] >= 10).sum()
-
     failing_students = (data["G3"] < 10).sum()
 
     col1, col2, col3, col4 = st.columns(4)
 
     col1.metric("Total Students", total_students)
-
     col2.metric("Average Final Grade", f"{average_grade:.2f}/20")
-
     col3.metric("Passing Students", passing_students)
-
     col4.metric("Failing Students", failing_students)
 
     st.divider()
@@ -335,10 +287,7 @@ if page == "Overview":
 
         fig, ax = plt.subplots(figsize=(7, 4))
 
-        pass_counts.plot(
-            kind="bar",
-            ax=ax
-        )
+        pass_counts.plot(kind="bar", ax=ax)
 
         ax.set_ylabel("Number of Students")
         ax.set_xlabel("Final Result")
@@ -353,13 +302,9 @@ if page == "Overview":
         st.markdown("### Dataset Information")
 
         st.write("**Dataset:** Student Performance (Math)")
-
         st.write(f"**Students:** {total_students}")
-
         st.write(f"**Features:** {data.drop(columns=['G3']).shape[1]}")
-
         st.write("**Target:** Pass / Fail")
-
         st.write("**Passing Threshold:** Final grade ≥ 10")
 
     st.divider()
@@ -381,22 +326,17 @@ elif page == "Exploratory Data Analysis":
     st.title("Exploratory Data Analysis")
 
     st.write(
-        "Explore the relationships and patterns "
+        "Explore relationships and patterns "
         "within the student performance dataset."
     )
 
     st.divider()
 
-    # Grade distribution
     st.subheader("Final Grade Distribution")
 
     fig, ax = plt.subplots(figsize=(9, 4))
 
-    ax.hist(
-        data["G3"],
-        bins=20,
-        edgecolor="black"
-    )
+    ax.hist(data["G3"], bins=20, edgecolor="black")
 
     ax.set_xlabel("Final Grade")
     ax.set_ylabel("Number of Students")
@@ -407,7 +347,6 @@ elif page == "Exploratory Data Analysis":
 
     st.divider()
 
-    # Study time analysis
     st.subheader("Study Time vs Final Grade")
 
     study_grade = data.groupby("studytime")["G3"].mean()
@@ -426,10 +365,7 @@ elif page == "Exploratory Data Analysis":
 
     fig, ax = plt.subplots(figsize=(9, 4))
 
-    study_grade.plot(
-        kind="bar",
-        ax=ax
-    )
+    study_grade.plot(kind="bar", ax=ax)
 
     ax.set_xlabel("Weekly Study Time")
     ax.set_ylabel("Average Final Grade")
@@ -441,7 +377,6 @@ elif page == "Exploratory Data Analysis":
 
     st.divider()
 
-    # Absences analysis
     st.subheader("School Absences vs Final Grade")
 
     fig, ax = plt.subplots(figsize=(9, 4))
@@ -461,13 +396,9 @@ elif page == "Exploratory Data Analysis":
 
     st.divider()
 
-    # Correlation heatmap
     st.subheader("Numerical Feature Correlation")
 
-    numeric_data = data.select_dtypes(
-        include="number"
-    )
-
+    numeric_data = data.select_dtypes(include="number")
     correlation = numeric_data.corr()
 
     fig, ax = plt.subplots(figsize=(12, 8))
@@ -483,17 +414,11 @@ elif page == "Exploratory Data Analysis":
     ax.set_xticks(range(len(correlation.columns)))
     ax.set_yticks(range(len(correlation.columns)))
 
-    ax.set_xticklabels(
-        correlation.columns,
-        rotation=90
-    )
-
+    ax.set_xticklabels(correlation.columns, rotation=90)
     ax.set_yticklabels(correlation.columns)
 
     fig.colorbar(image, ax=ax)
-
     ax.set_title("Correlation Heatmap")
-
     fig.tight_layout()
 
     st.pyplot(fig)
@@ -508,15 +433,16 @@ elif page == "Exploratory Data Analysis":
         data.columns
     )
 
-    st.write(
-        f"Distribution of {field_labels.get(selected_feature, selected_feature)}"
+    display_name = field_labels.get(
+        selected_feature,
+        selected_feature
     )
+
+    st.write(f"Distribution of {display_name}")
 
     if data[selected_feature].dtype == "object":
 
-        counts = data[selected_feature].value_counts()
-
-        st.bar_chart(counts)
+        st.bar_chart(data[selected_feature].value_counts())
 
     else:
 
@@ -534,7 +460,7 @@ elif page == "Predict Performance":
     st.title("Student Performance Prediction")
 
     st.write(
-        "Enter student information below to predict "
+        "Enter student information to predict "
         "whether the student is likely to pass or fail."
     )
 
@@ -553,10 +479,6 @@ elif page == "Predict Performance":
     selected_model = models[selected_model_name]
 
     feature_data = data.drop(columns=["G3"])
-
-    numeric_columns = feature_data.select_dtypes(
-        exclude=["object"]
-    ).columns
 
     categorical_columns = feature_data.select_dtypes(
         include=["object"]
@@ -597,12 +519,8 @@ elif page == "Predict Performance":
                 else:
 
                     minimum = float(feature_data[feature].min())
-
                     maximum = float(feature_data[feature].max())
-
-                    default = float(
-                        feature_data[feature].median()
-                    )
+                    default = float(feature_data[feature].median())
 
                     user_input[feature] = st.number_input(
                         label,
@@ -627,25 +545,18 @@ elif page == "Predict Performance":
         prediction = selected_model.predict(input_df)[0]
 
         st.divider()
-
         st.subheader("Prediction Result")
 
         if prediction == 1:
-
             st.success("The model predicts: PASS")
-
         else:
-
             st.error("The model predicts: FAIL")
 
         if hasattr(selected_model, "predict_proba"):
 
-            probabilities = selected_model.predict_proba(
-                input_df
-            )[0]
+            probabilities = selected_model.predict_proba(input_df)[0]
 
             fail_probability = probabilities[0] * 100
-
             pass_probability = probabilities[1] * 100
 
             col1, col2 = st.columns(2)
@@ -679,6 +590,200 @@ elif page == "Predict Performance":
 
 
 # ==========================================
+# MODEL PERFORMANCE PAGE
+# ==========================================
+
+elif page == "Model Performance":
+
+    st.title("Model Performance Analysis")
+
+    st.write(
+        "Compare the performance of all six tuned models "
+        "using an independent test dataset."
+    )
+
+    st.info(
+        "These results use the same 80/20 stratified split "
+        "used during model training. No models are retrained here."
+    )
+
+    # Recreate the original test split
+    X, y = preprocess_data(data)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y
+    )
+
+    # Evaluate saved models
+    performance_results = {}
+
+    predictions = {}
+
+    for name, model in models.items():
+
+        prediction = model.predict(X_test)
+
+        predictions[name] = prediction
+
+        performance_results[name] = {
+            "Accuracy": accuracy_score(y_test, prediction),
+            "Precision": precision_score(
+                y_test, prediction,
+                average="macro",
+                zero_division=0
+            ),
+            "Recall": recall_score(
+                y_test, prediction,
+                average="macro",
+                zero_division=0
+            ),
+            "F1-Score": f1_score(
+                y_test, prediction,
+                average="macro",
+                zero_division=0
+            ),
+            "Fail Recall": recall_score(
+                y_test, prediction,
+                pos_label=0,
+                zero_division=0
+            )
+        }
+
+    performance_df = pd.DataFrame(
+        performance_results
+    ).T
+
+    st.divider()
+
+    # Best model
+    best_model_name = performance_df["F1-Score"].idxmax()
+
+    best_f1 = performance_df.loc[
+        best_model_name, "F1-Score"
+    ]
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Models Evaluated", len(models))
+    col2.metric("Best Model (Macro F1)", best_model_name)
+    col3.metric("Best Test F1", f"{best_f1:.3f}")
+
+    st.divider()
+
+    # Comparison table
+    st.subheader("Model Comparison")
+
+    st.dataframe(
+        performance_df.style.format("{:.3f}").highlight_max(
+            axis=0
+        ),
+        use_container_width=True
+    )
+
+    st.caption(
+        "Fail Recall measures the proportion of actual failing "
+        "students correctly identified by the model."
+    )
+
+    st.divider()
+
+    # Performance chart
+    st.subheader("Performance Metrics Comparison")
+
+    selected_metrics = st.multiselect(
+        "Choose metrics to compare",
+        [
+            "Accuracy",
+            "Precision",
+            "Recall",
+            "F1-Score",
+            "Fail Recall"
+        ],
+        default=["Accuracy", "F1-Score", "Fail Recall"]
+    )
+
+    if selected_metrics:
+
+        st.bar_chart(
+            performance_df[selected_metrics],
+            use_container_width=True
+        )
+
+    st.divider()
+
+    # Individual confusion matrix
+    st.subheader("Confusion Matrix")
+
+    selected_model_name = st.selectbox(
+        "Choose a model to inspect",
+        list(models.keys()),
+        key="performance_model"
+    )
+
+    selected_predictions = predictions[selected_model_name]
+
+    matrix = confusion_matrix(
+        y_test,
+        selected_predictions,
+        labels=[0, 1]
+    )
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    display = ConfusionMatrixDisplay(
+        confusion_matrix=matrix,
+        display_labels=["Fail", "Pass"]
+    )
+
+    display.plot(
+        ax=ax,
+        cmap="Blues",
+        values_format="d"
+    )
+
+    ax.set_title(f"{selected_model_name} - Confusion Matrix")
+
+    st.pyplot(fig)
+    plt.close(fig)
+
+    st.markdown(
+        """
+        **How to read the confusion matrix:**
+
+        - Top-left: Actual Fail correctly predicted as Fail.
+        - Top-right: Actual Fail incorrectly predicted as Pass.
+        - Bottom-left: Actual Pass incorrectly predicted as Fail.
+        - Bottom-right: Actual Pass correctly predicted as Pass.
+        """
+    )
+
+    st.divider()
+
+    # Classification report
+    st.subheader("Detailed Classification Report")
+
+    report = classification_report(
+        y_test,
+        selected_predictions,
+        labels=[0, 1],
+        target_names=["Fail", "Pass"],
+        output_dict=True,
+        zero_division=0
+    )
+
+    report_df = pd.DataFrame(report).T
+
+    st.dataframe(
+        report_df.style.format("{:.3f}"),
+        use_container_width=True
+    )
+
+
+# ==========================================
 # MODEL INFORMATION PAGE
 # ==========================================
 
@@ -696,27 +801,22 @@ elif page == "Model Information":
             "Uses decision rules based on feature values "
             "to classify student outcomes."
         ),
-
         "Random Forest": (
             "Combines multiple decision trees to improve "
             "prediction stability and generalization."
         ),
-
         "KNN": (
             "Predicts outcomes by comparing students with "
             "similar feature values."
         ),
-
         "Logistic Regression": (
             "Estimates the probability of a student passing "
             "or failing using a classification model."
         ),
-
         "Bagging": (
             "Trains multiple models on bootstrap samples "
             "and combines their predictions."
         ),
-
         "Stacking": (
             "Combines predictions from different base models "
             "using a final meta-model."
@@ -726,7 +826,6 @@ elif page == "Model Information":
     for name, description in model_descriptions.items():
 
         with st.expander(name):
-
             st.write(description)
 
     st.divider()
@@ -734,19 +833,12 @@ elif page == "Model Information":
     st.subheader("Training Information")
 
     st.write("**Dataset:** UCI Student Performance Dataset")
-
     st.write("**Target:** Pass / Fail")
-
     st.write("**Passing Condition:** G3 ≥ 10")
-
     st.write("**Evaluation:** Stratified 5-Fold Cross-Validation")
-
     st.write("**Hyperparameter Tuning:** GridSearchCV")
-
     st.write("**Tuning Metric:** Macro F1-Score")
-
     st.write("**Model Storage:** Joblib")
-
     st.write("**Application Framework:** Streamlit")
 
 
